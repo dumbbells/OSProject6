@@ -7,17 +7,28 @@
 
 #ifndef SYSTEM_H_
 #define SYSTEM_H_
-#define MAXP 18
+#define MAXP 1
 #define MSGSIZE 9
+#define PAGES 4
+#define FRAMES 32
 
+#include "memory.h"
+#include <stdarg.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <errno.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/msg.h>
-#include <stdbool.h>
 #include <math.h>
+#include <sys/stat.h>
+#include <stdbool.h>
+
 
 //used to track child timers as well as system clock
 //children is an array of live child pids
@@ -32,6 +43,8 @@ typedef struct{
 	long mtype;
 	char mtext[MSGSIZE];
 } mymsg_t;
+
+void errorCheck (int i, char* string);
 
 bool timeIsUp(system_t*);
 int initqueue();

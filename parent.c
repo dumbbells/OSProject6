@@ -1,4 +1,4 @@
-#include "includes.h"
+#include "system.h"
 
 void initialFork();
 void masterHandler(int signum);
@@ -17,6 +17,9 @@ int main(int argc, char **argv){
 	fprintf(stderr, "Master pid: %d\n", getpid());
 	mymsg_t message;
 	int i;
+	frame_t memory[FRAMES];
+	int table[MAXP][PAGES];
+	initMem(memory, table);
 	//fptr = fopen("a.out", "w");
 
 /*	while ((i = getopt (argc, argv, "v")) != -1){
@@ -46,6 +49,10 @@ int main(int argc, char **argv){
 
 	//loop runs until system clock passes 2 seconds
 	while (updateClock(100000, sysid)){
+		if (msgrcv(queueid, &message, MSGSIZE, -3, IPC_NOWAIT) == MSGSIZE){
+			message.mtype = allocateMemory(message.mtext);
+		}
+
 		//checks if it's time to spawn another user process
 		if (timeIsUp(sysid)){
 			initialFork();
@@ -55,7 +62,7 @@ int main(int argc, char **argv){
 	masterHandler(0);
 }
 
-//forks a child in the lowes slot available in child array
+//forks a child in the lowest slot available in child array
 void initialFork(){
 	int i = 0;
 	while (sysid->children[i] != 0){
@@ -75,6 +82,7 @@ void cleanUp(int i){
 	if (sysid->children[i] > 0){
 		kill(sysid->children[i], SIGINT);
 		waitpid(sysid->children[i],0,0);
+		printf("%d has termed\n", sysid->children[i]);
 		sysid->children[i] = 0;
 	}
 }
@@ -87,6 +95,6 @@ void masterHandler(int sig){
 	}
 	msgctl(queueid, IPC_RMID,0 );
 	releaseClock(&sysid, 'd');
-	fclose(fptr);
+	//fclose(fptr);
 	exit(1);
 }

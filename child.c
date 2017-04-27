@@ -1,15 +1,16 @@
-#include "includes.h"
+#include "system.h"
 
 void childHandler(int sig);		//function to detach from all shared mem
 void initChild();							//function to set up initial values of child
 void setReqTimer();						//sets timer until next request
-void timeUp();							//checks to see if it should term or continue
+bool timeUp();							//checks to see if it should term or continue
+bool reqTime();
+void getPage();
 
 struct sigaction act;
 int queueid, quantum = 800000;
 system_t childData;						//used this struct twice to hold timers
-system_t* sysid = NULL;
-memCtrl* rscid = NULL;
+system_t* sysid;
 mymsg_t message;
 
 int main(int argc, char **argv){
@@ -34,16 +35,29 @@ int main(int argc, char **argv){
 	setReqTimer(quantum);
 
 	//loop runs until the system clock is greater than 1 second
-	while(updateClock(quantum, sysid)){
-		timeUp();							//checks to see if it's time to term
+	while(updateClock(quantum, sysid) && !(timeUp())){
+		if (reqTime()){
+			getPage();
 			setReqTimer(quantum);	//resets timer for next round of requests
+		}
 	}
-	childHandler(0);		//detaches from all shared mem
+	releaseClock(&sysid, ' ');
+	exit(1);
+}
+
+void getPage(){
+	printf("sending page request\n");
+	message.mtype = 2;
+	int page = (rand() % PAGES);
+	sprintf(message.mtext, "%02d %06d", page, getpid());
+	msgsnd(queueid, &message, MSGSIZE, 0);
+	msgrcv(queueid, &message, MSGSIZE, getpid(), 0);
+	fprintf(stderr, "message returned\n");
 }
 
 //determines if process should terminate on it's own terms. Most likely
 //will continue on. message type 1 (highest priority) if it terms
-void timeUp(){
+bool timeUp(){
 	if (sysid->clock[0] > childData.timer[0] || (
 			sysid->clock[0] == childData.timer[0] &&
 			sysid->clock[1] >= childData.timer[1])){
@@ -51,16 +65,27 @@ void timeUp(){
 			sprintf(message.mtext, "00 %d", getpid());
 			message.mtype = 1;
 			msgsnd(queueid, &message, MSGSIZE, 0);
-			childHandler(0);
+			return true;
 		}
 		else{
 			initChild();		//otherwise set new term time
 		}
 	}
+	return false;
+}
+
+bool reqTime(){
+	if (sysid->clock[0] > childData.clock[0] || (
+		sysid->clock[0] == childData.clock[0] &&
+		sysid->clock[1] >= childData.clock[1])){
+	return true;
+}
+return false;
 }
 
 //uses timer from system.h
 void initChild(){
+	message.mtype = getpid();
 	childData.timer[1] = sysid->clock[1] + (rand()%quantum)*1000;
 	rollOver(&childData);		//in system.c, carries 1 if necessary
 }
@@ -72,6 +97,6 @@ void setReqTimer(){
 }
 
 void childHandler(int sig){
-	if(sysid != NULL) releaseClock(&sysid, ' ');
+	releaseClock(&sysid, 'd');
 	exit(1);
 }

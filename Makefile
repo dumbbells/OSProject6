@@ -1,13 +1,13 @@
 CC=gcc
 CFLAGS=-g
-DEPS = includes.h
+DEPS = system.h
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 all: oss userProcess
 
-oss: parent.o system.o
+oss: parent.o system.o memory.o
 	gcc -o $@ $^ $(CFLAGS)
 
 userProcess: child.o system.o

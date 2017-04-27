@@ -38,7 +38,7 @@ system_t* getSystem(){
 //detaches and/or destroys system clock
 void releaseClock(system_t** ptr, char name){
         if(name == 'd')shmctl(shmid, IPC_RMID, NULL);
-        else shmdt(*ptr);
+        shmdt(*ptr);
         return;
 }
 
