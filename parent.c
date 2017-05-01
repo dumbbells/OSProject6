@@ -50,7 +50,14 @@ int main(int argc, char **argv){
 	//loop runs until system clock passes 2 seconds
 	while (updateClock(100000, sysid)){
 		if (msgrcv(queueid, &message, MSGSIZE, -3, IPC_NOWAIT) == MSGSIZE){
-			message.mtype = allocateMemory(message.mtext);
+			int memory = allocateMemory(&message);
+			int pid = 0;
+			while (message.mtype != sysid->children[pid]){
+				pid++;
+			}
+			if (table[pid][memory] == -1){
+				msgsnd(queueid, &message, MSGSIZE, 0);
+			}
 		}
 
 		//checks if it's time to spawn another user process

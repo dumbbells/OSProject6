@@ -39,7 +39,7 @@ typedef struct{
 } system_t;
 
 //declaration of message struct
-typedef struct{
+typedef struct msgTag{
 	long mtype;
 	char mtext[MSGSIZE];
 } mymsg_t;

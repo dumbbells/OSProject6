@@ -46,10 +46,10 @@ int main(int argc, char **argv){
 }
 
 void getPage(){
-	printf("sending page request\n");
 	message.mtype = 2;
 	int page = (rand() % PAGES);
 	sprintf(message.mtext, "%02d %06d", page, getpid());
+	printf("%d: %s\n", getpid(), message.mtext);
 	msgsnd(queueid, &message, MSGSIZE, 0);
 	msgrcv(queueid, &message, MSGSIZE, getpid(), 0);
 	fprintf(stderr, "message returned\n");

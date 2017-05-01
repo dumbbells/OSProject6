@@ -1,4 +1,6 @@
 #include "memory.h"
+#include "system.h"
+int allocateMemory(mymsg_t *message);
 
 void initMem(frame_t frames[FRAMES], int table[MAXP][PAGES]){
   for (int i = 0; i < FRAMES; i++){
@@ -14,16 +16,25 @@ void initMem(frame_t frames[FRAMES], int table[MAXP][PAGES]){
   printf("Memory initialized\n");
 }
 
-int allocateMemory(char* message){
-  char *buf1, *buf2;
-  buf1 = message;
-  while (*buf1 != ' '){
-    *buf2 = *buf1;
-    buf1++;
-    buf2++;
-    *buf2 = '\0';
+int allocateMemory(mymsg_t* message){
+  printf("%s\n", message->mtext);
+  int count = 0;
+  char temp[6];
+  while (count < 2){
+    temp[count] = message->mtext[count];
+    count++;
+    temp[count] = '\0';
   }
-  int memory = atoi(buf2);
-  printf("%d", memory);
-  return 0;
+  count++;
+  int memory = atoi(temp);
+  while (message->mtext[count] != '\0'){
+      temp[count - 3] = message->mtext[count];
+      count++;
+      temp[count - 3] = '\0';
+  }
+  int pid = atoi(temp);
+  message->mtype = pid;
+
+  printf("%d requested by %d\n", memory, pid);
+  return memory;
 }
