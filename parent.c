@@ -5,7 +5,7 @@ void masterHandler(int signum);
 bool requestMgmt(mymsg_t*);
 void cleanUp(int);
 
-int x = 2;			//starting processes
+int x = 4;			//starting processes
 
 struct sigaction act;
 int queueid;
@@ -48,15 +48,29 @@ int main(int argc, char **argv){
 	}
 
 	//loop runs until system clock passes 2 seconds
-	while (updateClock(100000, sysid)){
+	while (updateClock(1000000, sysid)){
 		if (msgrcv(queueid, &message, MSGSIZE, -3, IPC_NOWAIT) == MSGSIZE){
-			int memory = allocateMemory(&message);
+			int mem = parseMessage(&message);
 			int pid = 0;
 			while (message.mtype != sysid->children[pid]){
 				pid++;
 			}
-			if (table[pid][memory] == -1){
+			if (table[pid][mem] != -1){
+				printClock(sysid);
+				printf("Page already loaded in %d\n", table[pid][mem]);
+				memory[table[pid][mem]].dirtyBit = true;
 				msgsnd(queueid, &message, MSGSIZE, 0);
+			}
+			else {
+				table[pid][mem] = assignMemory(memory);
+				if (table[pid][mem] == -1){
+					printf("\tPage Fault\n");
+				}
+				else{
+					printClock(sysid);
+					printf("%d %d loaded in %d\n", sysid->children[pid], mem, table[pid][mem]);
+					msgsnd(queueid, &message, MSGSIZE, 0);
+				}
 			}
 		}
 
@@ -73,8 +87,8 @@ int main(int argc, char **argv){
 void initialFork(){
 	int i = 0;
 	while (sysid->children[i] != 0){
-		if (i == MAXP) return;
 		i++;
+		if (i == MAXP) return;
 	}
 	pid_t childPid;
 	switch (childPid = fork()){
@@ -89,6 +103,7 @@ void cleanUp(int i){
 	if (sysid->children[i] > 0){
 		kill(sysid->children[i], SIGINT);
 		waitpid(sysid->children[i],0,0);
+		printClock(sysid);
 		printf("%d has termed\n", sysid->children[i]);
 		sysid->children[i] = 0;
 	}

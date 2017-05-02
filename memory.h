@@ -10,6 +10,7 @@
 typedef struct{
 	bool dirtyBit;
 	bool waiting;
+	bool validBit;
 } frame_t;
 
 void initMem(frame_t[FRAMES], int[MAXP][PAGES]);

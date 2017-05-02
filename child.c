@@ -8,7 +8,7 @@ bool reqTime();
 void getPage();
 
 struct sigaction act;
-int queueid, quantum = 800000;
+int queueid, quantum = 8000000;
 system_t childData;						//used this struct twice to hold timers
 system_t* sysid;
 mymsg_t message;
@@ -49,10 +49,10 @@ void getPage(){
 	message.mtype = 2;
 	int page = (rand() % PAGES);
 	sprintf(message.mtext, "%02d %06d", page, getpid());
+	printClock(sysid);
 	printf("%d: %s\n", getpid(), message.mtext);
 	msgsnd(queueid, &message, MSGSIZE, 0);
 	msgrcv(queueid, &message, MSGSIZE, getpid(), 0);
-	fprintf(stderr, "message returned\n");
 }
 
 //determines if process should terminate on it's own terms. Most likely

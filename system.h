@@ -7,10 +7,10 @@
 
 #ifndef SYSTEM_H_
 #define SYSTEM_H_
-#define MAXP 1
+#define MAXP 4
 #define MSGSIZE 9
 #define PAGES 4
-#define FRAMES 32
+#define FRAMES 8
 
 #include "memory.h"
 #include <stdarg.h>
@@ -46,6 +46,7 @@ typedef struct msgTag{
 
 void errorCheck (int i, char* string);
 
+void printClock(system_t*);
 bool timeIsUp(system_t*);
 int initqueue();
 system_t* getSystem();

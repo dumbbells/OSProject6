@@ -42,6 +42,10 @@ void releaseClock(system_t** ptr, char name){
         return;
 }
 
+void printClock(system_t* clock){
+	printf("%02lu:%09lu: ", clock->clock[0],clock->clock[1]);
+}
+
 //initializes clock and begins churn by sending a message of type 4
 void initClock(system_t* clock){
 	message.mtype = 4;
