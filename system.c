@@ -51,7 +51,7 @@ void initClock(system_t* clock){
 //critical section, all processes must receive the one message of
 //type 4 before they can increment the clock.
 bool updateClock(int increment, system_t* clock){
-	if (clock->clock[0] == 1) return false;
+	if (clock->clock[0] == 2) return false;
 
 	msgrcv(msgKey, &message, MSGSIZE, 4, 0);
 
@@ -82,6 +82,6 @@ bool timeIsUp(unsigned long clock[2], unsigned long timer[2]){
 //function to set timer for a new process
 void setTimer(unsigned long clock[2], unsigned long timer[2]){
 	timer[0] = clock[0];
-	timer[1] = rand()%(int)pow(10, 7.8) + clock[1];
+	timer[1] = rand()%(int)pow(10, 8) + clock[1];
 	rollOver(timer);
 }

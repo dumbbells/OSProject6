@@ -10,7 +10,9 @@ int x = 4;			//starting processes
 struct sigaction act;
 int queueid;
 system_t* sysid;
+frame_t memory[FRAMES];
 int table[MAXP][PAGES];
+int lastCount = 0;
 
 FILE* fptr;
 
@@ -18,7 +20,6 @@ int main(int argc, char **argv){
 	fprintf(stderr, "Master pid: %d\n", getpid());
 	mymsg_t message;
 	int i;
-	frame_t memory[FRAMES];
 	initMem(memory, table);
 	//fptr = fopen("a.out", "w");
 
@@ -73,14 +74,19 @@ int main(int argc, char **argv){
 			}
 			if (table[pid][mem] != -1){
 				updateClock(10, sysid);
+				memory[table[pid][mem]].validBit = false;
+				memory[table[pid][mem]].timer[1] = sysid->clock[1];
+				memory[table[pid][mem]].timer[0] = sysid->clock[0];
 				printClock(sysid);
-				printf("Page already loaded continuing %ld\n", message.mtype);
+				printf("Page %02d already loaded continuing %ld\n", mem, message.mtype);
 				msgsnd(queueid, &message, MSGSIZE, 0);
 			}
 			else {
+				if (sweep(memory, table))
+					printf("\t\tSweep Daemon called\n");
 				table[pid][mem] = assignMemory(memory);
 				if (table[pid][mem] == -1){
-					printf("\tPage Fault\n");
+					printf("\tPage Fault FAILURE!\n");
 				}
 				else{
 					memory[table[pid][mem]].process = pid;
@@ -91,13 +97,17 @@ int main(int argc, char **argv){
 					rollOver(memory[table[pid][mem]].timer);
 
 					printClock(sysid);
-					printf("%d %d loaded in %d\n", sysid->children[pid], mem, table[pid][mem]);
-					//msgsnd(queueid, &message, MSGSIZE, 0);
+					printf("%d page %02d loaded in %02d\n", sysid->children[pid],
+									mem, table[pid][mem]);
 				}
 			}
-			//message.mtype = 4;
 		}
 
+		if (sysid->clock[0] > lastCount){
+			lastCount++;
+			printFrames(memory);
+			printf("\n");
+		}
 		//checks if it's time to spawn another user process
 		if (timeIsUp(sysid->clock, sysid->timer)){
 			initialFork();
@@ -129,10 +139,8 @@ void cleanUp(int i){
 		kill(sysid->children[i], SIGINT);
 		waitpid(sysid->children[i],0,0);
 		printClock(sysid);
-		printf("%d has termed\n", sysid->children[i]);
-		for (k = 0; k < PAGES; k++){
-			table[i][k] = -1;
-		}
+		printf("\t\t%d has termed\n", sysid->children[i]);
+		cleanMem(table, memory, i);
 		sysid->children[i] = 0;
 	}
 }

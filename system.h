@@ -7,7 +7,7 @@
 
 #ifndef SYSTEM_H_
 #define SYSTEM_H_
-#define MAXP 10
+#define MAXP 18
 #define MSGSIZE 9
 #define PAGES 32
 #define FRAMES 256
@@ -54,6 +54,8 @@ typedef struct{
 void initMem(frame_t[FRAMES], int[MAXP][PAGES]);
 int parseMessage(mymsg_t *message);
 int assignMemory(frame_t frames[FRAMES]);
+bool sweep(frame_t frames[FRAMES], int table[MAXP][PAGES]);
+void printFrames(frame_t frames[FRAMES]);
 
 void errorCheck (int i, char* string);
 
