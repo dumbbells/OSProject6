@@ -8,7 +8,7 @@ bool reqTime();
 void getPage();
 
 struct sigaction act;
-int queueid, quantum = 8000000;
+int queueid, quantum = 80000;
 system_t childData;						//used this struct twice to hold timers
 system_t* sysid;
 mymsg_t message;
@@ -41,6 +41,7 @@ int main(int argc, char **argv){
 			setReqTimer(quantum);	//resets timer for next round of requests
 		}
 	}
+	printf("im dead lol\n");
 	releaseClock(&sysid, ' ');
 	exit(1);
 }
@@ -49,10 +50,11 @@ void getPage(){
 	message.mtype = 2;
 	int page = (rand() % PAGES);
 	sprintf(message.mtext, "%02d %06d", page, getpid());
-	printClock(sysid);
-	printf("%d: %s\n", getpid(), message.mtext);
+	//printClock(sysid);
+	//printf("%d: %s\n", getpid(), message.mtext);
 	msgsnd(queueid, &message, MSGSIZE, 0);
 	msgrcv(queueid, &message, MSGSIZE, getpid(), 0);
+	//printf("msg rec\n");
 }
 
 //determines if process should terminate on it's own terms. Most likely
@@ -87,13 +89,13 @@ return false;
 void initChild(){
 	message.mtype = getpid();
 	childData.timer[1] = sysid->clock[1] + (rand()%quantum)*1000;
-	rollOver(&childData);		//in system.c, carries 1 if necessary
+	rollOver(childData.timer);		//in system.c, carries 1 if necessary
 }
 
 //uses clock from system.h
 void setReqTimer(){
 	childData.clock[1] = sysid->clock[1] + (rand()%quantum)*10;
-	rollOver(&childData);
+	rollOver(childData.clock);
 }
 
 void childHandler(int sig){

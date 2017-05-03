@@ -1,21 +1,19 @@
-#include "memory.h"
 #include "system.h"
-int allocateMemory(mymsg_t *message);
-int assignMemory(frame_t frames[FRAMES]);
 
 void initMem(frame_t frames[FRAMES], int table[MAXP][PAGES]){
   for (int i = 0; i < FRAMES; i++){
-    frames[i].dirtyBit = false;
+    frames[i].process = -1;
+    frames[i].page = -1;
     frames[i].waiting = false;
     frames[i].validBit = true;
+    frames[i].timer[0] = 0;
+    frames[i].timer[1] = 0;
   }
   for (int i = 0; i < MAXP; i++){
     for (int k = 0; k < PAGES; k++){
       table[i][k] = -1;
     }
-
   }
-  printf("Memory initialized\n");
 }
 
 int assignMemory(frame_t frames[FRAMES]){

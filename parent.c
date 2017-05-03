@@ -10,6 +10,7 @@ int x = 4;			//starting processes
 struct sigaction act;
 int queueid;
 system_t* sysid;
+int table[MAXP][PAGES];
 
 FILE* fptr;
 
@@ -18,7 +19,6 @@ int main(int argc, char **argv){
 	mymsg_t message;
 	int i;
 	frame_t memory[FRAMES];
-	int table[MAXP][PAGES];
 	initMem(memory, table);
 	//fptr = fopen("a.out", "w");
 
@@ -41,6 +41,7 @@ int main(int argc, char **argv){
 	sysid = getSystem();		//initializes and attaches clock and child array
 
 	initClock(sysid);
+	setTimer(sysid->clock, sysid->timer);
 
 	//spawns originial processes in system
 	for (i = 0; i < x; i++){
@@ -48,17 +49,32 @@ int main(int argc, char **argv){
 	}
 
 	//loop runs until system clock passes 2 seconds
-	while (updateClock(1000000, sysid)){
+	while (updateClock(1000, sysid)){
+		for (i = 0; i < FRAMES; i++){
+			if (memory[i].waiting && timeIsUp(sysid->clock, memory[i].timer)){
+				message.mtype = sysid->children[memory[i].process];
+				memory[i].waiting = false;
+				msgsnd(queueid, &message, MSGSIZE, 0);
+			}
+		}
 		if (msgrcv(queueid, &message, MSGSIZE, -3, IPC_NOWAIT) == MSGSIZE){
-			int mem = parseMessage(&message);
 			int pid = 0;
+			if (message.mtype == 1){
+				parseMessage(&message);
+				while (message.mtype != sysid->children[pid]){
+					pid++;
+				}
+				cleanUp(pid);
+				continue;
+			}
+			int mem = parseMessage(&message);
 			while (message.mtype != sysid->children[pid]){
 				pid++;
 			}
 			if (table[pid][mem] != -1){
+				updateClock(10, sysid);
 				printClock(sysid);
-				printf("Page already loaded in %d\n", table[pid][mem]);
-				memory[table[pid][mem]].dirtyBit = true;
+				printf("Page already loaded continuing %ld\n", message.mtype);
 				msgsnd(queueid, &message, MSGSIZE, 0);
 			}
 			else {
@@ -67,17 +83,25 @@ int main(int argc, char **argv){
 					printf("\tPage Fault\n");
 				}
 				else{
+					memory[table[pid][mem]].process = pid;
+					memory[table[pid][mem]].page = mem;
+					memory[table[pid][mem]].waiting = true;
+					memory[table[pid][mem]].validBit = false;
+					memory[table[pid][mem]].timer[1] = sysid->clock[1] + (1.5 * pow(10,7));
+					rollOver(memory[table[pid][mem]].timer);
+
 					printClock(sysid);
 					printf("%d %d loaded in %d\n", sysid->children[pid], mem, table[pid][mem]);
-					msgsnd(queueid, &message, MSGSIZE, 0);
+					//msgsnd(queueid, &message, MSGSIZE, 0);
 				}
 			}
+			//message.mtype = 4;
 		}
 
 		//checks if it's time to spawn another user process
-		if (timeIsUp(sysid)){
+		if (timeIsUp(sysid->clock, sysid->timer)){
 			initialFork();
-			setTimer(sysid);		//sets new timer for next user process
+			setTimer(sysid->clock, sysid->timer);		//sets new timer for next user process
 		}
 	}
 	masterHandler(0);
@@ -100,11 +124,15 @@ void initialFork(){
 
 //kills any children and waits for their response to continue
 void cleanUp(int i){
+	int k;
 	if (sysid->children[i] > 0){
 		kill(sysid->children[i], SIGINT);
 		waitpid(sysid->children[i],0,0);
 		printClock(sysid);
 		printf("%d has termed\n", sysid->children[i]);
+		for (k = 0; k < PAGES; k++){
+			table[i][k] = -1;
+		}
 		sysid->children[i] = 0;
 	}
 }

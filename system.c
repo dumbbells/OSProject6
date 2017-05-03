@@ -1,10 +1,3 @@
-/*
- * system.c
- *
- *  Created on: Apr 6, 2017
- *      Author: gregclimer
- */
-
 #include "system.h"
 	mymsg_t message;
 	int msgKey;
@@ -58,42 +51,37 @@ void initClock(system_t* clock){
 //critical section, all processes must receive the one message of
 //type 4 before they can increment the clock.
 bool updateClock(int increment, system_t* clock){
-	if (clock->clock[0] > 1) return false;
+	if (clock->clock[0] == 1) return false;
 
 	msgrcv(msgKey, &message, MSGSIZE, 4, 0);
 
 	clock->clock[1] += increment;
-	rollOver(clock);
+	rollOver(clock->clock);
 	errorCheck(msgsnd(msgKey, &message, MSGSIZE, 0), "clock message");
 	return true;
 }
 
 //function to carry the 1 on the clock
-bool rollOver(system_t* clock){
-	if (clock->clock[1] >=(int)pow(10,9)){
-		clock->clock[0]++;
-		clock->clock[1]-=(int)pow(10,9);
+void rollOver(unsigned long clock[2]){
+	if (clock[1] >=(int)pow(10,9)){
+		clock[0]++;
+		clock[1]-=(int)pow(10,9);
 	}
-	if (clock->timer[0] >=(int)pow(10,9)){
-		clock->timer[0]++;
-		clock->timer[1]-=(int)pow(10,9);
-	}
-	return true;
 }
 
 //checks to see if it's time to spawn a new process or make a request
-bool timeIsUp(system_t* clock){
-	if (clock->clock[1] > clock->timer[1] && clock->clock[0] >= clock->timer[0])
+bool timeIsUp(unsigned long clock[2], unsigned long timer[2]){
+	if (clock[1] > timer[1] && clock[0] >= timer[0])
 		return true;
-	else if (clock->clock[0] > clock->timer[0])
+	else if (clock[0] > timer[0])
 		return true;
 	else return false;
 
 }
 
 //function to set timer for a new process
-void setTimer(system_t* clock){
-	clock->timer[0] = clock->clock[0];
-	clock->timer[1] = rand()%(int)pow(10,8) + clock->clock[1];
-	rollOver(clock);
+void setTimer(unsigned long clock[2], unsigned long timer[2]){
+	timer[0] = clock[0];
+	timer[1] = rand()%(int)pow(10, 7.8) + clock[1];
+	rollOver(timer);
 }
